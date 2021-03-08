@@ -274,10 +274,11 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
     u = str(simplify(eval(s)))
 
     # If simplification detects division by zero (which _protected_divide would catch)
-    # or other overflows, it will introduce variable oo (or complex zoo).
-    # program is likely not particularly good: simply replace zoo or oo with 1 here, then
-    # optimize as much as possible
-    uast = ast.parse(u.replace('zoo','1.').replace('oo','1.'), mode='eval').body
+    # or other overflows, it will introduce variable oo (or complex zoo or nan).
+    # program is likely not particularly good: simply replace zoo, oo, and nan with 1
+    # here, then optimize as much as possible
+    uast = ast.parse(u.replace('zoo','1.').replace('oo','1.').replace('nan','1.'),
+        mode='eval').body
 
     # convert back to numpy expression
     params = []
