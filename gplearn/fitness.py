@@ -7,6 +7,12 @@ the computer programs created by the :mod:`gplearn.genetic` module.
 # Author: Trevor Stephens <trevorstephens.com>
 #
 # License: BSD 3 clause
+#
+# Modifications by Johannes Voss <https://stanford.edu/~vossj/main/>
+# for allowing cost function to be weighted sum of programs,
+# for optional symbolic simplification of programs
+# and optimization of numerical parameters, and for providing initial
+# starting guesses for programs
 
 import numbers
 

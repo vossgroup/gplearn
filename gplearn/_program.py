@@ -8,6 +8,12 @@ computer program. It is used for creating and evolving programs used in the
 # Author: Trevor Stephens <trevorstephens.com>
 #
 # License: BSD 3 clause
+#
+# Modifications by Johannes Voss <https://stanford.edu/~vossj/main/>
+# for allowing cost function to be weighted sum of programs,
+# for optional symbolic simplification of programs
+# and optimization of numerical parameters, and for providing initial
+# starting guesses for programs
 
 from copy import copy
 
@@ -16,7 +22,6 @@ from sklearn.utils.random import sample_without_replacement
 
 from .functions import _Function
 from .utils import check_random_state
-
 
 class _Program(object):
 
@@ -250,7 +255,7 @@ class _Program(object):
                     else:
                         output += self.feature_names[node]
                 else:
-                    output += '%.3f' % node
+                    output += '%.10g' % node
                 terminals[-1] -= 1
                 while terminals[-1] == 0:
                     terminals.pop()
@@ -339,14 +344,18 @@ class _Program(object):
         """Calculates the number of functions and terminals in the program."""
         return len(self.program)
 
-    def execute(self, X):
+    def execute(self, X, n_program_sum=1):
         """Execute the program according to X.
 
         Parameters
         ----------
-        X : {array-like}, shape = [n_samples, n_features]
+        X : {array-like}, shape = [n_samples, n_features*(n_program_sum+1)]
             Training vectors, where n_samples is the number of samples and
             n_features is the number of features.
+
+        n_program_sum : int, optional
+            Express program as sum of n_program_sum programs
+
 
         Returns
         -------
@@ -354,6 +363,18 @@ class _Program(object):
             The result of executing the program on X.
 
         """
+
+        # if cost function requires sum over programs, consider first column of X
+        # for weight for first term in sum with program with n_features input column,
+        # the next column as weight and following n_features columns as input for the
+        # second term, etc.
+        if n_program_sum > 1:
+            nparam = X.shape[1] // n_program_sum
+            y_hats = X[:,0] * np.array(self.execute(X[:,1:nparam], n_program_sum=-1))
+            for i in range(1,n_program_sum):
+                y_hats += X[:,nparam*i] * np.array(self.execute(X[:,nparam*i+1:nparam*(i+1)], n_program_sum=-1))
+            return y_hats
+
         # Check for single-node programs
         node = self.program[0]
         if isinstance(node, float):
@@ -438,7 +459,7 @@ class _Program(object):
         """Get the indices used to measure the program's fitness."""
         return self.get_all_indices()[0]
 
-    def raw_fitness(self, X, y, sample_weight):
+    def raw_fitness(self, X, y, sample_weight, n_program_sum=1):
         """Evaluate the raw fitness of the program according to X, y.
 
         Parameters
@@ -459,7 +480,7 @@ class _Program(object):
             The raw fitness of the program.
 
         """
-        y_pred = self.execute(X)
+        y_pred = self.execute(X, n_program_sum)
         if self.transformer:
             y_pred = self.transformer(y_pred)
         raw_fitness = self.metric(y, y_pred, sample_weight)

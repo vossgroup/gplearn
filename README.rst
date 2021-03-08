@@ -1,3 +1,16 @@
+Changes in this fork of Trevor Steven's gplearn
+===============================================
+
+This fork extends the original code by three methods:
+
+* There is an option to provide initial guesses for programs in the form of equations with variable names `X0`, `X1`, ... for features (e.g. `'1.5*X0 + 10*X1/X2'`) as a list of strings specified for the optional parameter `previous_programs` of the modified `SymbolicRegressor`.
+
+* Setting the new optional parameter `optimize` to `True` for `SymbolicRegressor` will trigger symbolic program simplification via `sympy <https://www.sympy.org>`_ and optimization of numerical program parameters via `scipy <https://www.scipy.org>`_.
+
+* Setting the new optional parameter `n_program_sum` of `SymbolicRegressor` to integers larger than 1 will trigger interpretation of the first column of the observation input as a weight `w0` and the following `n_features` columns as program feature input, the next column as weight `w1`, etc., such that a program P is evaluated as a sum from `i=1` to `n_program_sum` over `w_i * P(features_i)`.
+
+Original `README` below:
+
 .. image:: https://img.shields.io/pypi/v/gplearn.svg
     :target: https://pypi.python.org/pypi/gplearn/
     :alt: Version

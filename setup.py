@@ -36,4 +36,5 @@ setup(name='gplearn',
       zip_safe=False,
       package_data={'': ['LICENSE']},
       install_requires=['scikit-learn>=0.22.1',
-                        'joblib>=0.13.0'])
+                        'joblib>=0.13.0',
+                        'sympy>=1.1'])

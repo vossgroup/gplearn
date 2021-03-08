@@ -8,6 +8,12 @@ computer programs.
 # Author: Trevor Stephens <trevorstephens.com>
 #
 # License: BSD 3 clause
+#
+# Modifications by Johannes Voss <https://stanford.edu/~vossj/main/>
+# for allowing cost function to be weighted sum of programs,
+# for optional symbolic simplification of programs
+# and optimization of numerical parameters, and for providing initial
+# starting guesses for programs
 
 import itertools
 from abc import ABCMeta, abstractmethod
@@ -20,7 +26,6 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin, TransformerMixin, ClassifierMixin
 from sklearn.exceptions import NotFittedError
-from sklearn.utils import compute_sample_weight
 from sklearn.utils.validation import check_X_y, check_array
 from sklearn.utils.multiclass import check_classification_targets
 
@@ -29,15 +34,20 @@ from .fitness import _fitness_map, _Fitness
 from .functions import _function_map, _Function, sig1 as sigmoid
 from .utils import _partition_estimators
 from .utils import check_random_state
+from ._programparser import _optimizer, _convert_function
+
 
 __all__ = ['SymbolicRegressor', 'SymbolicClassifier', 'SymbolicTransformer']
 
 MAX_INT = np.iinfo(np.int32).max
 
 
-def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params):
+def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params,
+    n_program_sum=1, optimize=None, previous_programs=[]):
     """Private function used to build a batch of programs within a job."""
     n_samples, n_features = X.shape
+    if n_program_sum > 1:
+        n_features = n_features // n_program_sum - 1
     # Unpack parameters
     tournament_size = params['tournament_size']
     function_set = params['function_set']
@@ -54,6 +64,8 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params):
     feature_names = params['feature_names']
 
     max_samples = int(max_samples * n_samples)
+
+    prev_prog = previous_programs.copy()
 
     def _tournament():
         """Find the fittest individual from a sub-population."""
@@ -114,6 +126,15 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params):
                           'parent_idx': parent_index,
                           'parent_nodes': []}
 
+
+        if program is not None and optimize is not None:
+            program = _optimizer(program, optimize, n_features,
+                n_program_sum, metric, X, y, sample_weight)
+
+        if program is None and len(prev_prog)>0:
+            program = _convert_function(prev_prog.pop(-1), function_set,
+                n_features)
+
         program = _Program(function_set=function_set,
                            arities=arities,
                            init_depth=init_depth,
@@ -144,10 +165,10 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params):
         curr_sample_weight[not_indices] = 0
         oob_sample_weight[indices] = 0
 
-        program.raw_fitness_ = program.raw_fitness(X, y, curr_sample_weight)
+        program.raw_fitness_ = program.raw_fitness(X, y, curr_sample_weight, n_program_sum=n_program_sum)
         if max_samples < n_samples:
             # Calculate OOB fitness
-            program.oob_fitness_ = program.raw_fitness(X, y, oob_sample_weight)
+            program.oob_fitness_ = program.raw_fitness(X, y, oob_sample_weight, n_program_sum=n_program_sum)
 
         programs.append(program)
 
@@ -184,13 +205,15 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                  p_point_mutation=0.01,
                  p_point_replace=0.05,
                  max_samples=1.0,
-                 class_weight=None,
                  feature_names=None,
                  warm_start=False,
                  low_memory=False,
                  n_jobs=1,
                  verbose=0,
-                 random_state=None):
+                 random_state=None,
+                 n_program_sum=1,
+                 optimize=False,
+                 previous_programs=[]):
 
         self.population_size = population_size
         self.hall_of_fame = hall_of_fame
@@ -211,13 +234,15 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
         self.p_point_mutation = p_point_mutation
         self.p_point_replace = p_point_replace
         self.max_samples = max_samples
-        self.class_weight = class_weight
         self.feature_names = feature_names
         self.warm_start = warm_start
         self.low_memory = low_memory
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.random_state = random_state
+        self.n_program_sum = n_program_sum
+        self.optimize = optimize
+        self.previous_programs = previous_programs
 
     def _verbose_reporter(self, run_details=None):
         """A report of the progress of the evolution process.
@@ -284,20 +309,9 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
         random_state = check_random_state(self.random_state)
 
         # Check arrays
-        if sample_weight is not None:
-            sample_weight = check_array(sample_weight, ensure_2d=False)
-
         if isinstance(self, ClassifierMixin):
             X, y = check_X_y(X, y, y_numeric=False)
             check_classification_targets(y)
-
-            if self.class_weight:
-                if sample_weight is None:
-                    sample_weight = 1.
-                # modify the sample weights with the corresponding class weight
-                sample_weight = (sample_weight *
-                                 compute_sample_weight(self.class_weight, y))
-
             self.classes_, y = np.unique(y, return_inverse=True)
             n_trim_classes = np.count_nonzero(np.bincount(y, sample_weight))
             if n_trim_classes != 2:
@@ -306,11 +320,14 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                                  "classes are required."
                                  % n_trim_classes)
             self.n_classes_ = len(self.classes_)
-
         else:
             X, y = check_X_y(X, y, y_numeric=True)
-
+        if sample_weight is not None:
+            sample_weight = check_array(sample_weight, ensure_2d=False)
         _, self.n_features_ = X.shape
+
+        if self.n_program_sum > 1:
+            self.n_features_ = self.n_features_ // self.n_program_sum - 1
 
         hall_of_fame = self.hall_of_fame
         if hall_of_fame is None:
@@ -341,6 +358,18 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                                  % type(function))
         if not self._function_set:
             raise ValueError('No valid functions found in `function_set`.')
+
+        if self.optimize:
+            self.optimize_parser_function_map = [None]*6
+            optimize_parser_implemented = ('add','sub','mul','div','pow','neg')
+            for fun in self._function_set:
+                if fun.name in optimize_parser_implemented:
+                    self.optimize_parser_function_map[optimize_parser_implemented.index(fun.name)] = fun
+                else:
+                    raise ValueError('function %s not implemented in optimization parser.'
+                                     % fun.name)
+        else:
+            self.optimize_parser_function_map = None
 
         # For point-mutation to find a compatible replacement node
         self._arities = {}
@@ -481,7 +510,10 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                                           y,
                                           sample_weight,
                                           seeds[starts[i]:starts[i + 1]],
-                                          params)
+                                          params,
+                                          n_program_sum=self.n_program_sum,
+                                          optimize=self.optimize_parser_function_map,
+                                          previous_programs=self.previous_programs)
                 for i in range(n_jobs))
 
             # Reduce, maintaining order across different n_jobs
@@ -554,7 +586,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                 hall_of_fame = fitness.argsort()[::-1][:self.hall_of_fame]
             else:
                 hall_of_fame = fitness.argsort()[:self.hall_of_fame]
-            evaluation = np.array([gp.execute(X) for gp in
+            evaluation = np.array([gp.execute(X, n_program_sum=self.n_program_sum) for gp in
                                    [self._programs[-1][i] for
                                     i in hall_of_fame]])
             if self.metric == 'spearman':
@@ -760,6 +792,20 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
         If None, the random number generator is the RandomState instance used
         by `np.random`.
 
+    n_program_sum : int, optional (default=1)
+        If cost function requires sum over programs, set_n_program_sum > 1,
+        and the first column of X will be considered as weight for the first term
+        in sum with program with n_features input column, the next column as
+        weight and following n_features columns as input for the second term, etc.
+
+    optimize : bool, optional (default=False)
+        If optimize is True, simplify programs using sympy and optimize their
+        numerical coefficients using scipy.
+
+    previous_programs : list, optional (default=[])
+        List of initial guesses for initial programs using X0, X1, X2, ...
+        as variable names for features.
+
     Attributes
     ----------
     run_details_ : dict
@@ -808,7 +854,10 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
                  low_memory=False,
                  n_jobs=1,
                  verbose=0,
-                 random_state=None):
+                 random_state=None,
+                 n_program_sum=1,
+                 optimize=False,
+                 previous_programs=[]):
         super(SymbolicRegressor, self).__init__(
             population_size=population_size,
             generations=generations,
@@ -831,7 +880,10 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
             low_memory=low_memory,
             n_jobs=n_jobs,
             verbose=verbose,
-            random_state=random_state)
+            random_state=random_state,
+            n_program_sum=n_program_sum,
+            optimize=optimize,
+            previous_programs=previous_programs)
 
     def __str__(self):
         """Overloads `print` output of the object to resemble a LISP tree."""
@@ -865,7 +917,7 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
                              'n_features is %s.'
                              % (self.n_features_, n_features))
 
-        y = self._program.execute(X)
+        y = self._program.execute(X, n_program_sum=self.n_program_sum)
 
         return y
 
@@ -1011,14 +1063,6 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
     max_samples : float, optional (default=1.0)
         The fraction of samples to draw from X to evaluate each program on.
 
-    class_weight : dict, 'balanced' or None, optional (default=None)
-        Weights associated with classes in the form ``{class_label: weight}``.
-        If not given, all classes are supposed to have weight one.
-
-        The "balanced" mode uses the values of y to automatically adjust
-        weights inversely proportional to class frequencies in the input data
-        as ``n_samples / (n_classes * np.bincount(y))``
-
     feature_names : list, optional (default=None)
         Optional list of feature names, used purely for representations in
         the `print` operation or `export_graphviz`. If None, then X0, X1, etc
@@ -1091,7 +1135,6 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
                  p_point_mutation=0.01,
                  p_point_replace=0.05,
                  max_samples=1.0,
-                 class_weight=None,
                  feature_names=None,
                  warm_start=False,
                  low_memory=False,
@@ -1116,7 +1159,6 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
             p_point_mutation=p_point_mutation,
             p_point_replace=p_point_replace,
             max_samples=max_samples,
-            class_weight=class_weight,
             feature_names=feature_names,
             warm_start=warm_start,
             low_memory=low_memory,
@@ -1129,9 +1171,6 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
         if not hasattr(self, '_program'):
             return self.__repr__()
         return self._program.__str__()
-
-    def _more_tags(self):
-        return {'binary_only': True}
 
     def predict_proba(self, X):
         """Predict probabilities on test vectors X.
@@ -1160,7 +1199,7 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
                              'n_features is %s.'
                              % (self.n_features_, n_features))
 
-        scores = self._program.execute(X)
+        scores = self._program.execute(X, n_program_sum=self.n_program_sum)
         proba = self._transformer(scores)
         proba = np.vstack([1 - proba, proba]).T
         return proba
@@ -1480,7 +1519,7 @@ class SymbolicTransformer(BaseSymbolic, TransformerMixin):
                              'n_features is %s.'
                              % (self.n_features_, n_features))
 
-        X_new = np.array([gp.execute(X) for gp in self._best_programs]).T
+        X_new = np.array([gp.execute(X, n_program_sum=self.n_program_sum) for gp in self._best_programs]).T
 
         return X_new
 

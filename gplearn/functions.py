@@ -8,6 +8,12 @@ own custom functions.
 # Author: Trevor Stephens <trevorstephens.com>
 #
 # License: BSD 3 clause
+#
+# Modifications by Johannes Voss <https://stanford.edu/~vossj/main/>
+# for allowing cost function to be weighted sum of programs,
+# for optional symbolic simplification of programs
+# and optimization of numerical parameters, and for providing initial
+# starting guesses for programs
 
 import numpy as np
 from joblib import wrap_non_picklable_objects
@@ -165,6 +171,7 @@ sin1 = _Function(function=np.sin, name='sin', arity=1)
 cos1 = _Function(function=np.cos, name='cos', arity=1)
 tan1 = _Function(function=np.tan, name='tan', arity=1)
 sig1 = _Function(function=_sigmoid, name='sig', arity=1)
+pow2 = _Function(function=np.power, name='pow', arity=2)
 
 _function_map = {'add': add2,
                  'sub': sub2,
@@ -179,4 +186,5 @@ _function_map = {'add': add2,
                  'min': min2,
                  'sin': sin1,
                  'cos': cos1,
-                 'tan': tan1}
+                 'tan': tan1,
+                 'pow': pow2}
