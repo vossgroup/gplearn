@@ -9,6 +9,12 @@ This fork extends the original code by three methods:
 
 * Setting the new optional parameter `n_program_sum` of `SymbolicRegressor` to integers larger than 1 will trigger interpretation of the first column of the observation input as a weight `w0` and the following `n_features` columns as program feature input, the next column as weight `w1`, etc., such that a program P is evaluated as a sum from `i=1` to `n_program_sum` over `w_i * P(features_i)`.
 
+Additional, minor extensions:
+
+* Use `gplearn._programparser.program_to_math` to convert `list` representation of program to mathematical expression with standard math operators '*','/','+','-', etc. instead of 'mul(...)', ... etc., e.g. `mathstring = program_to_math(est_gp._program.program)`.
+
+* Implementation of modified `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ metric `aic0`. Use together with `parsimony_coefficient=2.0` to properly penalize operators, variables, and numerical coefficients as degrees of freedom.
+
 Original `README` below:
 
 .. image:: https://img.shields.io/pypi/v/gplearn.svg
