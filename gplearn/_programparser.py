@@ -286,7 +286,10 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
 
     if len(params)>0:
         # define cost function to be minimized with scipy
-        metr = metric.function._obj
+        if hasattr(metric.function, '_obj'):
+            metr = metric.function._obj
+        else:
+            metr = metric.function
         sign = -metric.sign
         if weight is None:
             weights = np.ones_like(y)
