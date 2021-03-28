@@ -17,7 +17,7 @@ This fork extends the original code by three methods:
 
 Additional, minor extensions:
 
-* Use :python:`gplearn._programparser.program_to_math` to convert :python:`list` representation of program to mathematical expression with standard math operators :python:`*`, :python:`/`, :python:`+`, :python:`-`, etc. instead of :python:`mul(...)`, ... etc., e.g. :python:`mathstring = program_to_math(est_gp._program.program)`.
+* Use :python:`gplearn._programparser.program_to_math` to convert :python:`list` representation of program to mathematical expression with standard math operators :python:`*`, :python:`/`, :python:`+`, :python:`-`, etc. instead of :python:`mul(...)`, ... etc., e.g. :python:`mathstring=program_to_math(est_gp._program.program)`.
 
 * Implementation of modified `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ metric :python:`aic0`. Use together with :python:`parsimony_coefficient=2.0` to properly penalize operators, variables, and numerical coefficients as degrees of freedom.
 
