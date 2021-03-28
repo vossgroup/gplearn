@@ -152,6 +152,12 @@ def _log_loss(y, y_pred, w):
     return np.average(-score, weights=w)
 
 
+def _aic0(y, y_pred, w):
+    """Calculate modified AIC. Use together with parsimony_coefficient=2.0"""
+    ms = np.average(((y_pred - y) ** 2), weights=w)
+    return (np.log(2*np.pi*ms) + 1) * len(y)
+
+
 weighted_pearson = _Fitness(function=_weighted_pearson,
                             greater_is_better=True)
 weighted_spearman = _Fitness(function=_weighted_spearman,
@@ -164,10 +170,13 @@ root_mean_square_error = _Fitness(function=_root_mean_square_error,
                                   greater_is_better=False)
 log_loss = _Fitness(function=_log_loss,
                     greater_is_better=False)
+aic0 = _Fitness(function=_aic0,
+                greater_is_better=False)
 
 _fitness_map = {'pearson': weighted_pearson,
                 'spearman': weighted_spearman,
                 'mean absolute error': mean_absolute_error,
                 'mse': mean_square_error,
                 'rmse': root_mean_square_error,
-                'log loss': log_loss}
+                'log loss': log_loss,
+                'aic0': aic0}
