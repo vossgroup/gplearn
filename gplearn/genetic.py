@@ -382,7 +382,8 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
             self._metric = self.metric
         elif isinstance(self, RegressorMixin):
             if self.metric not in ('mean absolute error', 'mse', 'rmse',
-                                   'pearson', 'spearman'):
+                                   'pearson', 'spearman', 'log loss',
+                                   'aic0'):
                 raise ValueError('Unsupported metric: %s' % self.metric)
             self._metric = _fitness_map[self.metric]
         elif isinstance(self, ClassifierMixin):
@@ -702,6 +703,8 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
         - 'rmse' for root mean squared error.
         - 'pearson', for Pearson's product-moment correlation coefficient.
         - 'spearman' for Spearman's rank-order correlation coefficient.
+        - 'log loss' for log loss function.
+        - 'aic0' for AIC metric (use together with parsimony_coefficient=2.0).
 
         Note that 'pearson' and 'spearman' will not directly predict the target
         but could be useful as value-added features in a second-step estimator.
