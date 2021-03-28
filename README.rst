@@ -1,4 +1,4 @@
-Changes in this fork of Trevor Steven's gplearn
+Changes in this fork of Trevor Stevens' gplearn
 ===============================================
 
 This fork extends the original code by three methods:
@@ -11,9 +11,14 @@ This fork extends the original code by three methods:
 
 Additional, minor extensions:
 
-* Use `gplearn._programparser.program_to_math` to convert `list` representation of program to mathematical expression with standard math operators '*','/','+','-', etc. instead of 'mul(...)', ... etc., e.g. `mathstring = program_to_math(est_gp._program.program)`.
+* Use `gplearn._programparser.program_to_math` to convert `list` representation of program to mathematical expression with standard math operators '*', '/', '+', '-', etc. instead of 'mul(...)', ... etc., e.g. `mathstring = program_to_math(est_gp._program.program)`.
 
 * Implementation of modified `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ metric `aic0`. Use together with `parsimony_coefficient=2.0` to properly penalize operators, variables, and numerical coefficients as degrees of freedom.
+
+.. role:: raw-html(raw)
+    :format: html
+
+:raw-html:`<br />`
 
 Original `README` below:
 
