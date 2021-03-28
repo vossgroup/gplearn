@@ -1,22 +1,25 @@
-Changes in this fork of Trevor Stevens' gplearn
-===============================================
+Changes in this fork of Trevor Stephens' gplearn
+================================================
 
-This fork extends the original code by three methods:
-
-* There is an option to provide initial guesses for programs in the form of equations with variable names `X0`, `X1`, ... for features (e.g. `'1.5*X0 + 10*X1/X2'`) as a list of strings specified for the optional parameter `previous_programs` of the modified `SymbolicRegressor`.
-
-* Setting the new optional parameter `optimize` to `True` for `SymbolicRegressor` will trigger symbolic program simplification via `sympy <https://www.sympy.org>`_ and optimization of numerical program parameters via `scipy <https://www.scipy.org>`_.
-
-* Setting the new optional parameter `n_program_sum` of `SymbolicRegressor` to integers larger than 1 will trigger interpretation of the first column of the observation input as a weight `w0` and the following `n_features` columns as program feature input, the next column as weight `w1`, etc., such that a program P is evaluated as a sum from `i=1` to `n_program_sum` over `w_i * P(features_i)`.
-
-Additional, minor extensions:
-
-* Use `gplearn._programparser.program_to_math` to convert `list` representation of program to mathematical expression with standard math operators '*', '/', '+', '-', etc. instead of 'mul(...)', ... etc., e.g. `mathstring = program_to_math(est_gp._program.program)`.
-
-* Implementation of modified `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ metric `aic0`. Use together with `parsimony_coefficient=2.0` to properly penalize operators, variables, and numerical coefficients as degrees of freedom.
+.. role:: python(code)
+   :language: python
 
 .. role:: raw-html(raw)
     :format: html
+
+This fork extends the original code by three methods:
+
+* There is an option to provide initial guesses for programs in the form of equations with variable names :python:`X0`, :python:`X1`, ... for features (e.g. :python:`'1.5*X0 + 10*X1/X2'`) as a list of strings specified for the optional parameter :python:`previous_programs` of the modified :python:`SymbolicRegressor`.
+
+* Setting the new optional parameter :python:`optimize` to :python:`True` for :python:`SymbolicRegressor` will trigger symbolic program simplification via `sympy <https://www.sympy.org>`_ and optimization of numerical program parameters via `scipy <https://www.scipy.org>`_.
+
+* Setting the new optional parameter :python:`n_program_sum` of :python:`SymbolicRegressor` to integers larger than 1 will trigger interpretation of the first column of the observation input as a weight :python:`w0` and the following :python:`n_features` columns as program feature input, the next column as weight :python:`w1`, etc., such that a program P is evaluated as a sum from :python:`i=1` to :python:`n_program_sum` over :python:`w_i * P(features_i)`.
+
+Additional, minor extensions:
+
+* Use :python:`gplearn._programparser.program_to_math` to convert :python:`list` representation of program to mathematical expression with standard math operators :python:`*`, :python:`/`, :python:`+`, :python:`-`, etc. instead of :python:`mul(...)`, ... etc., e.g. :python:`mathstring = program_to_math(est_gp._program.program)`.
+
+* Implementation of modified `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ metric :python:`aic0`. Use together with :python:`parsimony_coefficient=2.0` to properly penalize operators, variables, and numerical coefficients as degrees of freedom.
 
 :raw-html:`<br />`
 
