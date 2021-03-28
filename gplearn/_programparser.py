@@ -53,7 +53,7 @@ def parseexpr(x, fun_list, params):
             elif fun_list[4] is not None:
                 return [fun_list[4]]+l+r
             else:
-                raise RuntimeError('simplifcation introduced power operator with exponent that is not a positive integer, which is not included in function list.'+str(r))
+                raise RuntimeError('simplification introduced power operator with exponent that is not a positive integer, which is not included in function list.'+str(r))
         else:
             raise RuntimeError('unimplemented operation '+str(x.op))
     else:
@@ -269,7 +269,7 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
 
     # convert program to string of mathematical expression
     # substitute reserved names for division and power
-    s = program_to_str(program).replace('div', 'dv').replace('pow', 'pw')
+    s = program_to_str(program, format='%.12g').replace('div', 'dv').replace('pow', 'pw')
     # symplify
     u = str(simplify(eval(s)))
 
@@ -313,9 +313,17 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
         #optimize numerical parameters params
         newparams = optimize.fmin(local['fun'], params, disp=0, xtol=1e-8, ftol=1e-8)
 
-        pro = parseexpr(uast, fun_list, list(newparams))
+        numpar = list(newparams)
     else:
-        pro = parseexpr(uast, fun_list, [])
+        numpar = []
+
+    #if simplification failed due to e.g. introduction of
+    #new operators not included in the original function list that
+    #cannot be resolved, return original program
+    try:
+        pro = parseexpr(uast, fun_list, numpar)
+    except RuntimeError:
+        pro = program
 
     return pro
 
