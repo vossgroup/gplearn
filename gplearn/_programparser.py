@@ -48,8 +48,8 @@ def parseexpr(x, fun_list, params):
             return [fun_list[3]]+l+r
         elif isinstance(x.op, ast.Pow):
             # expand powers to products where possible
-            if len(r)==1 and type(r[0])==int and r[0]>0 and fun_list[2] is not None:
-                return (([fun_list[2]]+l)*(r[0]-1)) + l
+            if len(r)==1 and (type(r[0])==int or abs(round(r[0])-r[0])<1e-11) and r[0]>0 and fun_list[2] is not None:
+                return (([fun_list[2]]+l)*(int(r[0])-1)) + l
             elif fun_list[4] is not None:
                 return [fun_list[4]]+l+r
             else:
