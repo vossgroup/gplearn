@@ -61,7 +61,10 @@ def parseexpr(x, fun_list, params):
             return [int(x.id[1:])]
         elif isinstance(x, ast.Num):
             if type(x.n)==int:
-                return [int(x.n)]
+                # integers must be converted to floats here,
+                # otherwise gplearn will interpret the integer
+                # as a feature index when executing the program
+                return [float(x.n)]
             elif len(params)==0:
                 return [float(x.n)]
             else:
