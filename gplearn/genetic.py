@@ -289,7 +289,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                                      oob_fitness,
                                      remaining_time))
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y, sample_weight=None, always_use_penalized_fitness=False):
         """Fit the Genetic Program according to X, y.
 
         Parameters
@@ -303,6 +303,9 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
 
         sample_weight : array-like, shape = [n_samples], optional
             Weights applied to individual samples.
+
+        always_use_penalized_fitness : default = False, optional
+            If true, penalized fitness is used to select 'best program'
 
         Returns
         -------
@@ -524,7 +527,8 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
             # Reduce, maintaining order across different n_jobs
             population = list(itertools.chain.from_iterable(population))
 
-            fitness = [program.raw_fitness_ for program in population]
+            if not always_use_penalized_fitness:
+                fitness = [program.raw_fitness_ for program in population]
             length = [program.length_ for program in population]
 
             parsimony_coefficient = None
@@ -533,6 +537,9 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                                          np.var(length))
             for program in population:
                 program.fitness_ = program.fitness(parsimony_coefficient)
+
+            if always_use_penalized_fitness:
+                fitness = [program.fitness_ for program in population]
 
             self._programs.append(population)
 
@@ -563,7 +570,10 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
             self.run_details_['average_length'].append(np.mean(length))
             self.run_details_['average_fitness'].append(np.mean(fitness))
             self.run_details_['best_length'].append(best_program.length_)
-            self.run_details_['best_fitness'].append(best_program.raw_fitness_)
+            if not always_use_penalized_fitness:
+                self.run_details_['best_fitness'].append(best_program.raw_fitness_)
+            else:
+                self.run_details_['best_fitness'].append(best_program.fitness_)
             oob_fitness = np.nan
             if self.max_samples < 1.0:
                 oob_fitness = best_program.oob_fitness_
