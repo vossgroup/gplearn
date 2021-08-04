@@ -121,7 +121,7 @@ def parseexpr_to_np(x, params):
             return 'X[:,k+'+x.id[1:]+']'
         elif isinstance(x, ast.Num):
             # don't treat integers as numerical parameters to be optimized
-            if type(x.n)==int:
+            if type(x.n)==int or abs(round(float(x.n))-int(x.n))<1e-11:
                 return str(x.n)
             else:
                 params.append(float(x.n))
