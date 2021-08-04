@@ -59,11 +59,6 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params,
     transformer = params['_transformer']
     parsimony_coefficient = params['parsimony_coefficient']
     penalties = params['penalties']
-    if penalties is not None:
-        if len(penalties) != len(function_set) + 2:
-            raise ValueError("If optional penalties are specified, exactly "
-                             "two more penalty values than functions must "
-                             "be defined.")
     method_probs = params['method_probs']
     p_point_replace = params['p_point_replace']
     max_samples = params['max_samples']
@@ -735,10 +730,11 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
         program size l and program fitness f in the population, and Var(l) is
         the variance of program sizes.
 
-    penalties : list of floats, optional (default=None)
-        In same order as function_set, optional, function-specific penalties
-        plus two additional weights for variables (second-last value) and
-        numerical coefficients (last value)
+    penalties : dictionary, optional (default=None)
+        Dictionary with function-specific penalties, e.g.
+        {'add':2.0, 'var':1.0, 'coeff':1.5}
+        including penalties for variables 'var' and numerical coefficients
+        'coeff'.
 
     p_crossover : float, optional (default=0.9)
         The probability of performing crossover on a tournament winner.
@@ -1042,9 +1038,10 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
         the variance of program sizes.
 
     penalties : list of floats, optional (default=None)
-        In same order as function_set, optional, function-specific penalties
-        plus two additional weights for variables (second-last value) and
-        numerical coefficients (last value)
+        Dictionary with function-specific penalties, e.g.
+        {'add':2.0, 'var':1.0, 'coeff':1.5}
+        including penalties for variables 'var' and numerical coefficients
+        'coeff'.
 
     p_crossover : float, optional (default=0.9)
         The probability of performing crossover on a tournament winner.
@@ -1355,9 +1352,10 @@ class SymbolicTransformer(BaseSymbolic, TransformerMixin):
         the variance of program sizes.
 
     penalties : list of floats, optional (default=None)
-        In same order as function_set, optional, function-specific penalties
-        plus two additional weights for variables (second-last value) and
-        numerical coefficients (last value)
+        Dictionary with function-specific penalties, e.g.
+        {'add':2.0, 'var':1.0, 'coeff':1.5}
+        including penalties for variables 'var' and numerical coefficients
+        'coeff'.
 
     p_crossover : float, optional (default=0.9)
         The probability of performing crossover on a tournament winner.
