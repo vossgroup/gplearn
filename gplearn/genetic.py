@@ -58,6 +58,12 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params,
     metric = params['_metric']
     transformer = params['_transformer']
     parsimony_coefficient = params['parsimony_coefficient']
+    penalties = params['penalties']
+    if penalties is not None:
+        if len(penalties) != len(function_set) + 2:
+            raise ValueError("If optional penalties are specified, exactly "
+                             "two more penalty values than functions must "
+                             "be defined.")
     method_probs = params['method_probs']
     p_point_replace = params['p_point_replace']
     max_samples = params['max_samples']
@@ -145,6 +151,7 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params,
                            const_range=const_range,
                            p_point_replace=p_point_replace,
                            parsimony_coefficient=parsimony_coefficient,
+                           penalties=penalties,
                            feature_names=feature_names,
                            random_state=random_state,
                            program=program)
@@ -199,6 +206,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                  transformer=None,
                  metric='mean absolute error',
                  parsimony_coefficient=0.001,
+                 penalties=None,
                  p_crossover=0.9,
                  p_subtree_mutation=0.01,
                  p_hoist_mutation=0.01,
@@ -228,6 +236,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
         self.transformer = transformer
         self.metric = metric
         self.parsimony_coefficient = parsimony_coefficient
+        self.penalties = penalties
         self.p_crossover = p_crossover
         self.p_subtree_mutation = p_subtree_mutation
         self.p_hoist_mutation = p_hoist_mutation
@@ -726,6 +735,11 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
         program size l and program fitness f in the population, and Var(l) is
         the variance of program sizes.
 
+    penalties : list of floats, optional (default=None)
+        In same order as function_set, optional, function-specific penalties
+        plus two additional weights for variables (second-last value) and
+        numerical coefficients (last value)
+
     p_crossover : float, optional (default=0.9)
         The probability of performing crossover on a tournament winner.
         Crossover takes the winner of a tournament and selects a random subtree
@@ -846,6 +860,7 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
                  function_set=('add', 'sub', 'mul', 'div'),
                  metric='mean absolute error',
                  parsimony_coefficient=0.001,
+                 penalties=None,
                  p_crossover=0.9,
                  p_subtree_mutation=0.01,
                  p_hoist_mutation=0.01,
@@ -872,6 +887,7 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
             function_set=function_set,
             metric=metric,
             parsimony_coefficient=parsimony_coefficient,
+            penalties=penalties,
             p_crossover=p_crossover,
             p_subtree_mutation=p_subtree_mutation,
             p_hoist_mutation=p_hoist_mutation,
@@ -1025,6 +1041,11 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
         program size l and program fitness f in the population, and Var(l) is
         the variance of program sizes.
 
+    penalties : list of floats, optional (default=None)
+        In same order as function_set, optional, function-specific penalties
+        plus two additional weights for variables (second-last value) and
+        numerical coefficients (last value)
+
     p_crossover : float, optional (default=0.9)
         The probability of performing crossover on a tournament winner.
         Crossover takes the winner of a tournament and selects a random subtree
@@ -1132,6 +1153,7 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
                  transformer='sigmoid',
                  metric='log loss',
                  parsimony_coefficient=0.001,
+                 penalties=None,
                  p_crossover=0.9,
                  p_subtree_mutation=0.01,
                  p_hoist_mutation=0.01,
@@ -1156,6 +1178,7 @@ class SymbolicClassifier(BaseSymbolic, ClassifierMixin):
             transformer=transformer,
             metric=metric,
             parsimony_coefficient=parsimony_coefficient,
+            penalties=penalties,
             p_crossover=p_crossover,
             p_subtree_mutation=p_subtree_mutation,
             p_hoist_mutation=p_hoist_mutation,
@@ -1331,6 +1354,11 @@ class SymbolicTransformer(BaseSymbolic, TransformerMixin):
         program size l and program fitness f in the population, and Var(l) is
         the variance of program sizes.
 
+    penalties : list of floats, optional (default=None)
+        In same order as function_set, optional, function-specific penalties
+        plus two additional weights for variables (second-last value) and
+        numerical coefficients (last value)
+
     p_crossover : float, optional (default=0.9)
         The probability of performing crossover on a tournament winner.
         Crossover takes the winner of a tournament and selects a random subtree
@@ -1439,6 +1467,7 @@ class SymbolicTransformer(BaseSymbolic, TransformerMixin):
                  function_set=('add', 'sub', 'mul', 'div'),
                  metric='pearson',
                  parsimony_coefficient=0.001,
+                 penalties=None,
                  p_crossover=0.9,
                  p_subtree_mutation=0.01,
                  p_hoist_mutation=0.01,
@@ -1464,6 +1493,7 @@ class SymbolicTransformer(BaseSymbolic, TransformerMixin):
             function_set=function_set,
             metric=metric,
             parsimony_coefficient=parsimony_coefficient,
+            penalties=penalties,
             p_crossover=p_crossover,
             p_subtree_mutation=p_subtree_mutation,
             p_hoist_mutation=p_hoist_mutation,

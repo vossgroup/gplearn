@@ -135,6 +135,7 @@ class _Program(object):
                  metric,
                  p_point_replace,
                  parsimony_coefficient,
+                 penalties,
                  random_state,
                  transformer=None,
                  feature_names=None,
@@ -149,6 +150,7 @@ class _Program(object):
         self.metric = metric
         self.p_point_replace = p_point_replace
         self.parsimony_coefficient = parsimony_coefficient
+        self.penalties = penalties
         self.transformer = transformer
         self.feature_names = feature_names
         self.program = program
@@ -504,7 +506,28 @@ class _Program(object):
         """
         if parsimony_coefficient is None:
             parsimony_coefficient = self.parsimony_coefficient
-        penalty = parsimony_coefficient * len(self.program) * self.metric.sign
+        if self.penalties is None:
+            penalty = parsimony_coefficient * len(self.program) * self.metric.sign
+        else:
+            penalty = 0.
+            for node in self.program:
+                if isinstance(node, _Function): # penalty for function
+                    try:
+                        penalty += self.penalties[node.name]
+                    except:
+                        penalty += 1.
+                else:
+                    if isinstance(node, int):   # penalty for variable
+                        try:
+                            penalty += self.penalties['var']
+                        except:
+                            penalty += 1.
+                    else:                       # penalty for numerical coeff.
+                        try:
+                            penalty += self.penalties['coeff']
+                        except:
+                            penalty += 1.
+            penalty *= parsimony_coefficient * self.metric.sign
         return self.raw_fitness_ - penalty
 
     def get_subtree(self, random_state, program=None):
