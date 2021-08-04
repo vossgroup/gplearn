@@ -15,7 +15,9 @@ This fork extends the original code by three methods:
 
 * Setting the new optional parameter :python:`n_program_sum` of :python:`SymbolicRegressor` to integers larger than 1 will trigger interpretation of the first column of the observation input as a weight :python:`w0` and the following :python:`n_features` columns as program feature input, the next column as weight :python:`w1`, etc., such that a program P is evaluated as a sum from :python:`i=1` to :python:`n_program_sum` over :python:`w_i * P(features_i)`.
 
-Additional, minor extensions:
+Additional extensions:
+
+* Optional parameter :python:`penalties` is a dictionary with function-specific weights as program penalties, e.g. :python:`{'add':2.0, 'var':1.0, 'coeff':1.5}` including penalties for variables 'var' and numerical coefficients 'coeff'.
 
 * Use :python:`gplearn._programparser.program_to_math` to convert :python:`list` representation of program to mathematical expression with standard math operators :python:`*`, :python:`/`, :python:`+`, :python:`-`, etc. instead of :python:`mul(...)`, ... etc., e.g. :python:`mathstring=program_to_math(est_gp._program.program)`.
 
