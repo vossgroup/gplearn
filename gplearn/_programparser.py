@@ -153,11 +153,12 @@ def pw(x,y):
 def neg(x):
     return -x
 
-def program_to_str(program, format='%.15e'):
+def program_to_str(program, format='%.15e', skip_nmax_feature=True):
     """Convert program in list representation to string.
        Based on __str__ method in _program.py."""
     terminals = [0]
     output = ''
+    maxfeature = 0
     for i, node in enumerate(program):
         if isinstance(node, _Function):
             terminals.append(node.arity)
@@ -165,6 +166,7 @@ def program_to_str(program, format='%.15e'):
         else:
             if isinstance(node, int):
                 output += 'X%s' % node
+                maxfeature = max(maxfeature,node)
             else:
                 output += format % node
             terminals[-1] -= 1
@@ -174,10 +176,13 @@ def program_to_str(program, format='%.15e'):
                 output += ')'
             if i != len(program) - 1:
                 output += ', '
-    return output
+    if skip_nmax_feature:
+        return output
+    else:
+        return output, maxfeature
 
 
-def program_to_math(program, n_features, feature_names=None, format='%.8g'):
+def program_to_math(program, feature_names=None, format='%.8g'):
     """Convert program as math expression with standard operators +, -, *, /
 
     Parameters
@@ -199,24 +204,26 @@ def program_to_math(program, n_features, feature_names=None, format='%.8g'):
     str with mathematical expression
     """
 
+    # convert program to string of mathematical expression
+    s, maxf = program_to_str(program, format=format, skip_nmax_feature=False)
+    # substitute reserved names for division and power
+    s = s.replace('div', 'dv').replace('pow', 'pw')
+
     # generate symbol names for features for use with sympy
     gpvars0 = ''
     gpvars1 = ''
-    for i in range(n_features-1):
+    for i in range(maxf):
         gpvars0 += 'X%d,' % i
         gpvars1 += 'X%d ' % i
-    gpvars0 += 'X%d' % (n_features-1)
-    gpvars1 += 'X%d' % (n_features-1)
+    gpvars0 += 'X%d' % maxf
+    gpvars1 += 'X%d' % maxf
     exec(gpvars0 + '=symbols("' + gpvars1 +'")')
 
-    # convert program to string of mathematical expression
-    # substitute reserved names for division and power
-    s = program_to_str(program, format=format).replace('div', 'dv').replace('pow', 'pw')
     u = str(eval(s))
 
     # use optional feature variable names
     if feature_names is not None:
-        for i in range(len(features_names)-1,-1,-1):
+        for i in range(len(feature_names)-1,-1,-1):
             u = u.replace('X%d' % i, feature_names[i])
 
     return u
