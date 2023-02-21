@@ -43,7 +43,7 @@ MAX_INT = np.iinfo(np.int32).max
 
 
 def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params,
-    n_program_sum=1, optimize=None, previous_programs=[]):
+    n_program_sum=1, optimize=None, force_coeff=None, previous_programs=[]):
     """Private function used to build a batch of programs within a job."""
     n_samples, n_features = X.shape
     if n_program_sum > 1:
@@ -129,7 +129,7 @@ def _parallel_evolve(n_programs, parents, X, y, sample_weight, seeds, params,
 
 
         if program is not None and optimize is not None:
-            program = _optimizer(program, optimize, n_features,
+            program = _optimizer(program, optimize, force_coeff, n_features,
                 n_program_sum, metric, X, y, sample_weight)
 
         if program is None and len(prev_prog)>0:
@@ -216,6 +216,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                  random_state=None,
                  n_program_sum=1,
                  optimize=False,
+                 force_coeff=False,
                  previous_programs=[]):
 
         self.population_size = population_size
@@ -246,6 +247,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
         self.random_state = random_state
         self.n_program_sum = n_program_sum
         self.optimize = optimize
+        self.force_coeff = force_coeff
         self.previous_programs = previous_programs
 
     def _verbose_reporter(self, run_details=None):
@@ -521,6 +523,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                                           params,
                                           n_program_sum=self.n_program_sum,
                                           optimize=self.optimize_parser_function_map,
+                                          force_coeff=self.force_coeff,
                                           previous_programs=self.previous_programs)
                 for i in range(n_jobs))
 
@@ -825,6 +828,11 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
         If optimize is True, simplify programs using sympy and optimize their
         numerical coefficients using scipy.
 
+    force_coeff : bool, optional (default=False)
+        If force_coeff is True and optimize is True, insert factors of 1
+        before numerical optimization for overall program and for all summands,
+        minuends and subtrahends
+
     previous_programs : list, optional (default=[])
         List of initial guesses for initial programs using X0, X1, X2, ...
         as variable names for features.
@@ -881,6 +889,7 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
                  random_state=None,
                  n_program_sum=1,
                  optimize=False,
+                 force_coeff=False,
                  previous_programs=[]):
         super(SymbolicRegressor, self).__init__(
             population_size=population_size,
@@ -908,6 +917,7 @@ class SymbolicRegressor(BaseSymbolic, RegressorMixin):
             random_state=random_state,
             n_program_sum=n_program_sum,
             optimize=optimize,
+            force_coeff=force_coeff,
             previous_programs=previous_programs)
 
     def __str__(self):

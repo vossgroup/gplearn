@@ -19,6 +19,8 @@ Additional extensions:
 
 * Optional parameter :python:`penalties` is a dictionary with function-specific weights as program penalties, e.g. :python:`{'add':2.0, 'var':1.0, 'coeff':1.5}` including penalties for variables 'var' and numerical coefficients 'coeff'.
 
+* Optional parameter :python:`force_coeff` inserts factors of one before numerical optimization, so that e.g. sums of features with different physical units with summands without numerical pre-factors can be avoided.
+
 * Use :python:`gplearn._programparser.program_to_math` to convert :python:`list` representation of program to mathematical expression with standard math operators :python:`*`, :python:`/`, :python:`+`, :python:`-`, etc. instead of :python:`mul(...)`, ... etc., e.g. :python:`mathstring=program_to_math(est_gp._program.program)`.
 
 * Implementation of modified `AIC <https://en.wikipedia.org/wiki/Akaike_information_criterion>`_ metric :python:`aic0`. Use together with :python:`parsimony_coefficient=2.0` to properly penalize operators, variables, and numerical coefficients as degrees of freedom.

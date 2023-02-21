@@ -229,8 +229,8 @@ def program_to_math(program, feature_names=None, format='%.8g'):
     return u
 
 
-def _optimizer(program, fun_list, n_features, n_program_sum, metric,
-    X, y, weight):
+def _optimizer(program, fun_list, force_coeff, n_features, n_program_sum,
+    metric, X, y, weight):
     """Simplify a program and then optimize its numerical parameters.
 
     Parameters
@@ -241,6 +241,10 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
     fun_list : list of length 6
         List mapping the operations in order add, sub, mul, div, pow, neg
         to the corresponding gplearn function objects.
+
+    force_coeff : bool
+        If true, insert factors of 1 before numerical optimization for
+        whole program and all summands, minuends and subtrahends
 
     n_features : int
         number of features
@@ -282,6 +286,10 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
     s = program_to_str(program, format='%.12g').replace('div', 'dv').replace('pow', 'pw')
     # symplify
     u = str(simplify(eval(s)))
+
+    #Add factors of one before numerical optization if requested
+    if force_coeff:
+        u = '1.0*('+u.replace(' - ', '*1.0-1.0*').replace(' + ', '*1.0+1.0*')+')'
 
     # If simplification detects division by zero (which _protected_divide would catch)
     # or other overflows, it will introduce variable oo (or complex zoo or nan).
@@ -335,6 +343,13 @@ def _optimizer(program, fun_list, n_features, n_program_sum, metric,
     #cannot be resolved, return original program
     try:
         pro = parseexpr(uast, fun_list, numpar)
+        #if factors of one were inserted, symbolically simplify once more
+        if force_coeff:
+            s = program_to_str(pro, format='%.12g').replace('div', 'dv').replace('pow', 'pw')
+            # symplify
+            u = str(simplify(eval(s)))
+            uast = ast.parse(u, mode='eval').body
+            pro = parseexpr(uast, fun_list, [])
     except RuntimeError:
         pro = program
 
