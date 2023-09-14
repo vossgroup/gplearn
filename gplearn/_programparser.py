@@ -16,6 +16,40 @@ import numpy as np
 from scipy import optimize
 from sympy import symbols, simplify
 import ast
+import signal
+
+
+def mysimplify(expr):
+    """Simplify expr using sympy's simplify with a timeout
+    Parameters
+    ----------
+    expr : string
+        expression to be simplified
+
+    Returns
+    -------
+    simplified sympy expression or original expression after timeout
+    """
+
+    #timeout based on: https://stackoverflow.com/a/13821695
+    class timeout(Exception):
+        pass
+
+    def timeouthandler(signal, frame):
+        raise timeout()
+
+    signal.signal(signal.SIGALRM, timeouthandler)
+    signal.alarm(10)
+
+    try:
+        result = simplify(expr)
+    except timeout:
+        result = expr
+    finally:
+        signal.alarm(0)
+
+    return result
+
 
 def parseexpr(x, fun_list, params):
     """Recursively parse program as mathematical expression.
@@ -48,7 +82,7 @@ def parseexpr(x, fun_list, params):
             return [fun_list[3]]+l+r
         elif isinstance(x.op, ast.Pow):
             # expand powers to products where possible
-            if len(r)==1 and (type(r[0])==int or abs(round(r[0])-r[0])<1e-11) and r[0]>0 and fun_list[2] is not None:
+            if len(r)==1 and (type(r[0])==int or abs(round(1e5*r[0])-1e5*r[0])<1e-11) and r[0]>0 and fun_list[2] is not None:
                 return (([fun_list[2]]+l)*(int(r[0])-1)) + l
             elif fun_list[4] is not None:
                 return [fun_list[4]]+l+r
@@ -121,7 +155,7 @@ def parseexpr_to_np(x, params):
             return 'X[:,k+'+x.id[1:]+']'
         elif isinstance(x, ast.Num):
             # don't treat integers as numerical parameters to be optimized
-            if type(x.n)==int or abs(round(float(x.n))-int(x.n))<1e-11:
+            if type(x.n)==int: #or abs(round(float(x.n))-int(x.n))<1e-11:
                 return str(x.n)
             else:
                 params.append(float(x.n))
@@ -285,7 +319,7 @@ def _optimizer(program, fun_list, force_coeff, n_features, n_program_sum,
     # substitute reserved names for division and power
     s = program_to_str(program, format='%.12g').replace('div', 'dv').replace('pow', 'pw')
     # symplify
-    u = str(simplify(eval(s)))
+    u = str(mysimplify(eval(s)))
 
     #Add factors of one before numerical optization if requested
     if force_coeff:
@@ -332,7 +366,7 @@ def _optimizer(program, fun_list, force_coeff, n_features, n_program_sum,
         exec(funstr, local)
 
         #optimize numerical parameters params
-        newparams = optimize.fmin(local['fun'], params, disp=0, xtol=1e-8, ftol=1e-8)
+        newparams = optimize.fmin(local['fun'], params, disp=0, xtol=1e-8, ftol=1e-8, maxiter=n_features*100)
 
         numpar = list(newparams)
     else:
@@ -347,7 +381,7 @@ def _optimizer(program, fun_list, force_coeff, n_features, n_program_sum,
         if force_coeff:
             s = program_to_str(pro, format='%.12g').replace('div', 'dv').replace('pow', 'pw')
             # symplify
-            u = str(simplify(eval(s)))
+            u = str(mysimplify(eval(s)))
             uast = ast.parse(u, mode='eval').body
             pro = parseexpr(uast, fun_list, [])
     except RuntimeError:
